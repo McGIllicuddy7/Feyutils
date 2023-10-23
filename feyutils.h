@@ -166,6 +166,8 @@ typedef struct{
     size_t len;
     size_t alloc_len;
 }fstr;
+fstr fstr_new(fey_arena_t * arena);
+fstr fstr_delete(fey_arena_t * arena, fstr str);
 fstr subfstr(char * v, int start, int end, fey_arena_t * arena);
 fstr fstr_fromStr(fey_arena_t * arena, char * c);
 void fstr_push(fey_arena_t * arena, fstr * str, char c);

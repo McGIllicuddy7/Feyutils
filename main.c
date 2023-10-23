@@ -22,12 +22,11 @@ error:
 int main(void){
   	//repl();
 	fey_arena_init();
-	fstrArray_t j = fstrArray_New(local);
+	fstr j = fstr_fromStr(local,"");
 	for(int i = 0; i<8; i++){
-		fstrArray_Push(local, &j,fstr_fromStr(local,"i"));
+		fstr k = fstr_fromStr(local," ijk ");
+		fstr_cat(local, &j, k.data);
 	}
-	for(int i = 0; i<8; i++){
-		printf("%s,", j.arr[i].data);
-	}
+	printf("%s,", j.data);
     return 0;
 }
