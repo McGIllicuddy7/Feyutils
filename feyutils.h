@@ -54,6 +54,7 @@ static void T##Array_Push(fey_arena_t * arena, T##Array_t*arr, T val){\
         for(int i = 0; i<arr->len; i++){\
             arr_new[i] = arr->arr[i];\
         }\
+        arr->arr = arr_new;\
     }\
         arr->arr[arr->len] = val;\
         arr->len++;\
@@ -165,15 +166,14 @@ typedef struct{
     size_t len;
     size_t alloc_len;
 }fstr;
-EnableArrayType(fstr);
-fstr substring(char * v, int start, int end, fey_arena_t * arena);
-fstr from_str(fey_arena_t * arena, char * c);
+fstr subfstr(char * v, int start, int end, fey_arena_t * arena);
+fstr fstr_fromStr(fey_arena_t * arena, char * c);
 void fstr_push(fey_arena_t * arena, fstr * str, char c);
 fstr fstr_add(fey_arena_t * arena, fstr a, fstr b);
 void fstr_cat(fey_arena_t * arena, fstr * a, char * b);
 bool fstr_eq(fstr a, fstr b);
+EnableArrayType(fstr)
 fstrArray_t parse_fstr(fey_arena_t * arena, char * string, char * token_seperators);
-void fstrprint(fstr str);
-void fstrprintln(fstr str);
-fstr fstrsprintf(fey_arena_t * arena, char * fmt_string, ...);
+void fstr_print(fstr str);
+void fstr_println(fstr str);
 #endif

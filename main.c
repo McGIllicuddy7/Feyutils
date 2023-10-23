@@ -18,7 +18,16 @@ void repl(void){
 error:
 	printf("usage; rn(operator)(some value)->rm");
 }
+
 int main(void){
-    repl();
+  	//repl();
+	fey_arena_init();
+	fstrArray_t j = fstrArray_New(local);
+	for(int i = 0; i<8; i++){
+		fstrArray_Push(local, &j,fstr_fromStr(local,"i"));
+	}
+	for(int i = 0; i<8; i++){
+		printf("%s,", j.arr[i].data);
+	}
     return 0;
 }

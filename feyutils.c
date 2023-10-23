@@ -182,15 +182,15 @@ typedef struct{
     size_t alloc_len;
 }fstr;
 */
-fstr substring(char * v, int start, int end, fey_arena_t * arena){
+fstr subfstr(char * v, int start, int end, fey_arena_t * arena){
     fey_arena_init();
 	char * out = fey_arena_alloc(local, end-start);
 	for(int i = start; i<end; i++){
 		out[i-start] = v[i];
 	}
-	return from_str(local,out);
+	return fstr_fromStr(local,out);
 }
-fstr from_str(fey_arena_t * arena, char * c){
+fstr fstr_fromStr(fey_arena_t * arena, char * c){
     fstr out;
     out.len = strlen(c)+1;
     int actlen = ceil(log2(out.len));
@@ -199,7 +199,7 @@ fstr from_str(fey_arena_t * arena, char * c){
         out.alloc_len *= 2;
     }
     out.data = fey_arena_alloc(arena,out.alloc_len);
-    for(int i = 0; i<strlen(c); i++){
+    for(int i = 0; i<out.len; i++){
         out.data[i] = c[i];
     }
     return out;
@@ -345,7 +345,7 @@ fstrArray_t parse_fstr(fey_arena_t * arena, char * string, char * token_seperato
     out.alloc_len = t.num_ptrs;
     out.len = 0;
     for(int i = 0; i<t.num_ptrs; i++){
-        fstr n = from_str(arena,t.ptrs[i]);
+        fstr n = fstr_fromStr(arena,t.ptrs[i]);
         if(strlen(n.data)){
             //printf("%s,", n.data);
             fstrArray_Push(arena, &out, n);
@@ -359,22 +359,12 @@ void fstr_cat(fey_arena_t * arena, fstr * a, char * b){
         fstr_push(arena, a, b[i]);
     }
 }
-void fstrprint(fstr str){
+void fstr_print(fstr str){
     printf("%s", str.data);
 }
-void fstrprintln(fstr str){
+void fstr_println(fstr str){
     printf("%s\n",str.data);
 }
-fstr fstrsprintf(fey_arena_t * arena, char * fmt_string,...){
-    va_list ptr;
-    va_start(ptr, fmt_string);
-    char buff[1];
-    int len = snprintf(buff, 1,fmt_string, ptr);
-    fstr out;
-    va_start(ptr, fmt_string);
-    out.data = fey_arena_alloc(arena, len);
-    sprintf(out.data, fmt_string, ptr);
-    out.len = strlen(out.data);
-    out.alloc_len = len;
-    return out;
+fstr fstr_fromFmtStr(fey_arena_t * arena, char * fmt_string,...){
+
 }
