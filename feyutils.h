@@ -1,6 +1,8 @@
 #ifndef FEY_UTILS_H
 #define FEY_UTILS_H
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 #include <stdbool.h>
 #define FEY_ARENA_SIZE 1280000
 #define GLOBAL_ARENA 0
@@ -167,7 +169,7 @@ typedef struct{
     size_t alloc_len;
 }fstr;
 fstr fstr_new(fey_arena_t * arena);
-fstr fstr_delete(fey_arena_t * arena, fstr str);
+void fstr_delete(fey_arena_t * arena, fstr str);
 fstr subfstr(char * v, int start, int end, fey_arena_t * arena);
 fstr fstr_fromStr(fey_arena_t * arena, char * c);
 void fstr_push(fey_arena_t * arena, fstr * str, char c);
@@ -178,4 +180,12 @@ EnableArrayType(fstr)
 fstrArray_t parse_fstr(fey_arena_t * arena, char * string, char * token_seperators);
 void fstr_print(fstr str);
 void fstr_println(fstr str);
+#define fstr_create(name, fmt, ...) fstr name  = fstr_new(local);\
+    {\
+        int _templ = log2(strlen(fmt)*9);\
+        for(int i = 0; i<strlen(fmt); i++){_templ*=2;}\
+        name.data = fey_arena_alloc(local, _templ);\
+        sprintf(name.data,fmt,__VA_ARGS__);\
+        name.alloc_len = _templ*9;\
+    }
 #endif

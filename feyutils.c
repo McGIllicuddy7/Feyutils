@@ -380,7 +380,7 @@ fstr fstr_new(fey_arena_t * arena){
     out.data[0] = '\0';
     return out;
 }
-fstr fstr_delete(fey_arena_t * arena, fstr str){
+void fstr_delete(fey_arena_t * arena, fstr str){
     fey_arena_free(arena, str.data);
     str.data = 0;
     str.alloc_len = 0;

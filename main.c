@@ -22,11 +22,7 @@ error:
 int main(void){
   	//repl();
 	fey_arena_init();
-	fstr j = fstr_fromStr(local,"");
-	for(int i = 0; i<8; i++){
-		fstr k = fstr_fromStr(local," ijk ");
-		fstr_cat(local, &j, k.data);
-	}
-	printf("%s,", j.data);
+	fstr_create(bruh, "%f,", M_PI);
+	fstr_print(bruh);
     return 0;
 }
