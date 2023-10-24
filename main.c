@@ -20,7 +20,8 @@ error:
 }
 
 int main(void){
-  	//repl();
+  	repl();
+	return 0;
 	fey_arena_init();
 	fstr_create(bruh, "%f,", M_PI);
 	fstr_print(bruh);
