@@ -40,6 +40,7 @@ occupting the position and every element above it up one position, TArray_Remove
 frees only the memory that the array owns, e.g if it is an array of pointers it will not free any of the pointers. The convention for arrays of pointers is "typedef T* Tptr" where T is the type you want to have a pointer t*/
 #define EnableArrayType(T)\
 typedef struct{\
+    fey_arena_t * arena;\
     T* arr;\
     size_t len;\
     size_t alloc_len;\
@@ -47,9 +48,10 @@ typedef struct{\
 }T##Array_t;\
 static T##Array_t T##Array_New(fey_arena_t *arena){\
     T* arr = fey_arena_alloc(arena,4*sizeof(T)); \
-    return (T##Array_t){.arr = arr, .len = 0, .alloc_len = 4};\
+    return (T##Array_t){.arena = arena,.arr = arr, .len = 0, .alloc_len = 4};\
 }\
-static void T##Array_Push(fey_arena_t * arena, T##Array_t*arr, T val){\
+static void T##Array_Push(T##Array_t*arr, T val){\
+    fey_arena_t* arena = arr->arena;\
     if(arr->len+1>arr->alloc_len){\
         arr->alloc_len *=2;\
         T * arr_new = fey_arena_alloc(arena,arr->alloc_len*sizeof(T));\
@@ -64,9 +66,10 @@ static void T##Array_Push(fey_arena_t * arena, T##Array_t*arr, T val){\
 static void T##Array_Pop(T##Array_t *arr){\
     arr->len--;\
 }\
-static void T##Array_Insert(fey_arena_t * arena,T##Array_t *arr, long index, T val){\
+static void T##Array_Insert(T##Array_t *arr, long index, T val){\
+    fey_arena_t* arena = arr->arena;\
     if(arr->len<=index){\
-        T##Array_Push(arena,arr, val);\
+        T##Array_Push(arr, val);\
         return;\
     }\
     if(arr->len+1>=arr->alloc_len){\
@@ -82,7 +85,8 @@ static void T##Array_Insert(fey_arena_t * arena,T##Array_t *arr, long index, T v
     arr->arr[index] = val;\
     arr->len++;\
 }\
-static void T##Array_Remove(fey_arena_t * arena,T##Array_t *arr, long index){\
+static void T##Array_Remove(T##Array_t *arr, long index){\
+    fey_arena_t * arena = arr->arena;\
     if(index<0 || index>=arr->len){\
         return;\
     }\
@@ -91,90 +95,27 @@ static void T##Array_Remove(fey_arena_t * arena,T##Array_t *arr, long index){\
     }\
     arr->len--;\
 }\
-static void T##Array_Free(fey_arena_t * arena, T##Array_t * arr){\
-    fey_arena_free(arena,arr->arr);\
+static void T##Array_Free(T##Array_t * arr){\
+    fey_arena_free(arr->arena,arr->arr);\
 }\
 static void T##Array_Iterate(T##Array_t * arr, void (*func)(T*)){\
     for(int i= 0; i<arr->len; i++){\
         func(&arr->arr[i]);\
     }\
 }
-/*creates a dynamic array with type TDynArray_t where T is the type name passed into the macro. This array is for long term state managament and it is not recommended for use other than that as it is more of a hassle memory wise.TDynArray_New() returns 
-a fully set up array, TDynArray_Push() adds an element of type T to the highest index of the array, TDynArray_Pop removes the element with the highest index from the array, TDynArray_Insert() adds an element at a given position and moves the element currently 
-occupting the position and every element above it up one position, TDynArray_Remove() removes an element at the given index by moving element above that index down one, TDynArray_Iterate() calls the inputted function on every element in the array,
-TDynArray_Free() frees only the memory that the array owns, e.g if it is an array of pointers it will not free any of the pointers. The convention for arrays of pointers is "typedef T* Tptr" where T is the type you want to have a pointer to*/
-#define EnableDynArrayType(T)\
-typedef struct{\
-    T* arr;\
-    size_t len;\
-    size_t alloc_len;\
-\
-}T##DynArray_t;\
-static T##DynArray_t T##DynArray_New(){\
-    T* arr = malloc(4*sizeof(T)); \
-    return (T##DynArray_t){.arr = arr, .len = 0, .alloc_len = 4};\
-}\
-static void T##DynArray_Push(T##DynArray_t*arr, T val){\
-    if(arr->len+1>arr->alloc_len){\
-        arr->alloc_len *=2;\
-        T * arr_new = malloc(arr->alloc_len*sizeof(T));\
-        for(int i = 0; i<arr->len; i++){\
-            arr_new[i] = arr->arr[i];\
-        }\
-    }\
-        arr->arr[arr->len] = val;\
-        arr->len++;\
-}\
-static void T##DynArray_Pop(T##DynArray_t *arr){\
-    arr->len--;\
-}\
-static void T##DynArray_Insert(T##DynArray_t *arr, long index, T val){\
-    if(arr->len<=index){\
-        T##DynArray_Push(arr, val);\
-        return;\
-    }\
-    if(arr->len+1>=arr->alloc_len){\
-        arr->alloc_len *=2;\
-        T * arr_new = malloc(arr->alloc_len*sizeof(T));\
-        for(int i = 0; i<arr->len; i++){\
-            arr_new[i] = arr->arr[i];\
-        }\
-    }\
-    for(int i = arr->len; i>=index; i--){\
-        arr->arr[i+1] = arr->arr[i];\
-    }\
-    arr->arr[index] = val;\
-    arr->len++;\
-}\
-static void T##DynArray_Remove(T##DynArray_t *arr, long index){\
-    if(index<0 || index>=arr->len){\
-        return;\
-    }\
-    for(int i = index+1; i<arr->len; i++){\
-         arr->arr[i-1] = arr->arr[i];\
-    }\
-    arr->len--;\
-}\
-static void T##DynArray_Free(T##DynArray_t * arr){\
-    free(arr->arr);\
-}\
-static void T##DynArray_Iterate(T##DynArray_t * arr, void (*func)(T*)){\
-    for(int i= 0; i<arr->len; i++){\
-        func(&arr->arr[i]);\
-    }\
-}
 typedef struct{
-    char * data;
+    fey_arena_t * arena;
     size_t len;
+    char * data;
     size_t alloc_len;
 }fstr;
 fstr fstr_new(fey_arena_t * arena);
-void fstr_delete(fey_arena_t * arena, fstr str);
+void fstr_delete(fstr str);
 fstr subfstr(char * v, int start, int end, fey_arena_t * arena);
-fstr fstr_fromStr(fey_arena_t * arena, char * c);
-void fstr_push(fey_arena_t * arena, fstr * str, char c);
+fstr fstr_fromStr(fey_arena_t *arena, char * c);
+void fstr_push(fstr * str, char c);
 fstr fstr_add(fey_arena_t * arena, fstr a, fstr b);
-void fstr_cat(fey_arena_t * arena, fstr * a, char * b);
+void fstr_cat(fstr * a, char * b);
 bool fstr_eq(fstr a, fstr b);
 EnableArrayType(fstr)
 fstrArray_t parse_fstr(fey_arena_t * arena, char * string, char * token_seperators);

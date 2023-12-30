@@ -188,10 +188,11 @@ fstr subfstr(char * v, int start, int end, fey_arena_t * arena){
 	for(int i = start; i<end; i++){
 		out[i-start] = v[i];
 	}
-	return fstr_fromStr(local,out);
+	return fstr_fromStr(arena, out);
 }
 fstr fstr_fromStr(fey_arena_t * arena, char * c){
     fstr out;
+    out.arena = arena;
     out.len = strlen(c)+1;
     int actlen = ceil(log2(out.len));
     out.alloc_len = 1;
@@ -204,7 +205,8 @@ fstr fstr_fromStr(fey_arena_t * arena, char * c){
     }
     return out;
 }
-void fstr_push(fey_arena_t * arena, fstr * str, char c){
+void fstr_push(fstr * str, char c){
+    fey_arena_t * arena = str->arena;
     if(str->alloc_len<1){
         str->data = fey_arena_alloc(arena, 8);
         str->data[0] = c;
@@ -229,13 +231,13 @@ void fstr_push(fey_arena_t * arena, fstr * str, char c){
         str->data = buff;
     }
 }
-fstr fstr_add(fey_arena_t * arena, fstr a, fstr b){
-    fstr out = {0,0,0};
+fstr fstr_add(fey_arena_t * arena,fstr a, fstr b){
+    fstr out = {arena,0,0,0};
     for(int i = 0; i<a.len-1; i++){
-        fstr_push(arena, &out, a.data[i]);
+        fstr_push(&out, a.data[i]);
     }
     for(int i = 0; i<b.len-1; i++){
-        fstr_push(arena, &out, b.data[i]);
+        fstr_push(&out, b.data[i]);
     }
     return out;
 }
@@ -302,7 +304,7 @@ stringArray_t parse_token_seperators(fey_arena_t *local, const char * seperators
         else{
            // printf("<%s>",current);
            if(!stringArrayContains(&out, current)){
-                stringArray_Push(local, &out, current);
+                stringArray_Push(&out, current);
                 current = fey_arena_alloc(local, 100); 
             }
             memset(current, 0, 100);
@@ -310,7 +312,7 @@ stringArray_t parse_token_seperators(fey_arena_t *local, const char * seperators
         }
     }
     if(current[0] && !stringArrayContains(&out, current)){
-        stringArray_Push(local, &out, current);
+        stringArray_Push(&out, current);
     }
     return out;
 }
@@ -355,15 +357,15 @@ fstrArray_t parse_fstr(fey_arena_t * arena, char * string, char * token_seperato
         fstr n = fstr_fromStr(arena,t.ptrs[i]);
         if(strlen(n.data)){
             //printf("%s,", n.data);
-            fstrArray_Push(arena, &out, n);
+            fstrArray_Push(&out, n);
         }
     }
     return out;
 }
-void fstr_cat(fey_arena_t * arena, fstr * a, char * b){
+void fstr_cat(fstr * a, char * b){
     int l = strlen(b);
     for(int i =0 ; i<l-1; i++){
-        fstr_push(arena, a, b[i]);
+        fstr_push(a, b[i]);
     }
 }
 void fstr_print(fstr str){
@@ -374,13 +376,15 @@ void fstr_println(fstr str){
 }
 fstr fstr_new(fey_arena_t * arena){
     fstr out;
+    out.arena = arena;
     out.len = 1;
     out.data = fey_arena_alloc(arena,8);
     out.alloc_len = 8;
     out.data[0] = '\0';
     return out;
 }
-void fstr_delete(fey_arena_t * arena, fstr str){
+void fstr_delete(fstr str){
+    fey_arena_t * arena = str.arena;
     fey_arena_free(arena, str.data);
     str.data = 0;
     str.alloc_len = 0;
