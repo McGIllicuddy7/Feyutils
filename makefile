@@ -6,4 +6,3 @@ make:
 	cp feyutils.h /usr/local/include
 t:
 	gcc main.c feyutils.c -g3
-	./a.out

@@ -25,12 +25,12 @@ typedef struct{
 } fey_arena_t;
 */
 void fey_arena_hard_reset(fey_arena_t * arena){
-    memset(arena->buffer, 0, FEY_ARENA_SIZE);
-    memset(arena->alloc_list, 0, 4096*sizeof(arena_chunk_t));
-    memset(arena->free_list, 0, 4096*sizeof(arena_chunk_t));
+    memset(arena->buffer, 0, arena->buffer_size-1);
+    memset(arena->alloc_list, 0, arena->list_size*sizeof(arena_chunk_t));
+    memset(arena->free_list, 0, arena->list_size*sizeof(arena_chunk_t));
     arena->num_free =1;
     arena->num_allocated = 0;
-    arena->free_list[0] = (arena_chunk_t){&arena->buffer, FEY_ARENA_SIZE};
+    arena->free_list[0] = (arena_chunk_t){arena->buffer, FEY_ARENA_SIZE};
 }
 void list_insert(arena_chunk_t * array, arena_chunk_t value, size_t * array_sz){
     int index = 0;
@@ -158,7 +158,6 @@ void * fey_arena_realloc(fey_arena_t * arena, void * ptr, size_t requested_size)
     fey_arena_free(arena, ptr);
     return out;
 }
-
 void fey_arena_debug(fey_arena_t * arena){
     if(arena == GLOBAL_ARENA){
         arena = &global;
@@ -183,7 +182,7 @@ typedef struct{
 }fstr;
 */
 fstr subfstr(char * v, int start, int end, fey_arena_t * arena){
-    fey_arena_init();
+    fey_init_small_arena();
 	char * out = fey_arena_alloc(local, end-start);
 	for(int i = start; i<end; i++){
 		out[i-start] = v[i];
@@ -216,18 +215,20 @@ void fstr_push(fstr * str, char c){
     }
     if(str->alloc_len>str->len+1){
         str->data[str->len-1] = c;
+        str->data[str->len] = '\0';
         str->len++;
     }
     else{
         str->alloc_len *= 2;
         char * buff = fey_arena_alloc(arena, str->alloc_len);
+        assert(buff != NULL);
         for(int i = 0; i<str->len-1; i++){
             buff[i] = str->data[i];
         }
         buff[str->len-1] = c;
         buff[str->len] = '\0';
         str->len++;
-        fey_arena_free(arena,str->data);
+        //fey_arena_free(arena,str->data);s
         str->data = buff;
     }
 }
@@ -252,119 +253,11 @@ bool fstr_eq(fstr a, fstr b){
     }
     return true;
 }
-bool scmp(const char * str, const char * cmp){
-    int al = strlen(str);
-    int bl = strlen(cmp);
-    int len = (al*(al<bl))+(bl*(bl<=al));
-    if(al>bl){
-        return false;
-    }
-    for(int i = 0; i<len; i++){
-        if(str[i] != cmp[i]){
-            return false;
-        }
-    }
-    return true;
-}
-static bool stringArrayContains(const stringArray_t *arr, const char * key){
-    for(int i =0 ; i<arr->len; i++){
-        if(scmp(arr->arr[i], key)){
-            return true;
-        }
-    }
-    return false;
-}
-static int stringArrayContainsLen(const stringArray_t *arr, const char * key){
-    for(int i =0 ; i<arr->len; i++){
-        if(scmp(arr->arr[i], key)){
-            return strlen(arr->arr[i]);
-        }
-    }
-    return 0;
-}
-typedef struct{
-    char buffer[64000];
-    char * ptrs[64000];
-    int num_ptrs;
-    int next;
-} parsed_string_t;
-stringArray_t parse_token_seperators(fey_arena_t *local, const char * seperators){
-    stringArray_t out  = (stringArray_t){.alloc_len= 512, .arr = fey_arena_alloc(local, sizeof(string)*512), .len = 0};
-    int index = 0;
-    int len = strlen(seperators);
-    char * current = fey_arena_alloc(local, 100);
-    memset(current, 0, 100);
-    for(int i = 0; i<strlen(seperators); i++){
-        if(seperators[i] != ' '){
-            if(seperators[i] != '\n'){
-                current[index] = seperators[i];
-                index++;
-            }
-        }
-        else{
-           // printf("<%s>",current);
-           if(!stringArrayContains(&out, current)){
-                stringArray_Push(&out, current);
-                current = fey_arena_alloc(local, 100); 
-            }
-            memset(current, 0, 100);
-            index = 0;
-        }
-    }
-    if(current[0] && !stringArrayContains(&out, current)){
-        stringArray_Push(&out, current);
-    }
-    return out;
-}
-void parsed_string_push(parsed_string_t * ps, char * string, int len){
-    memcpy(&ps->buffer[ps->next], string, len);
-    ps->ptrs[ps->num_ptrs] = &ps->buffer[ps->next];
-    ps->next+=len+1;
-    ps->num_ptrs++;
-}
-parsed_string_t parse_string(fey_arena_t * local, char * string, const char * token_seperators){
-    parsed_string_t out;
-    out.num_ptrs = 0;
-    memset(out.buffer, 0, 64000);
-    out.next = 0;
-    stringArray_t tokens = parse_token_seperators(local, token_seperators);
-    int len = strlen(string);
-    const char * current =&string[0]; 
-    for(int i =0; i<len; i++){
-        const char * c = &string[i];
-        if(c[0] ==' ' || c[0] == '\n'){
-            parsed_string_push(&out, (char *)current, c-current);
-            current +=(c-current+1);
-            continue;
-        }
-        int l = stringArrayContainsLen(&tokens, c);
-        if(l){
-            parsed_string_push(&out, (char *)current, c-current);
-            parsed_string_push(&out, (char *)c, l);
-            current +=(c-current+l);
-            i+= l;
-        }
-    }
-    return out; 
-}
-fstrArray_t parse_fstr(fey_arena_t * arena, char * string, char * token_seperators){
-    parsed_string_t t = parse_string(arena,string, token_seperators);
-    fstrArray_t out;
-    out.arr  = fey_arena_alloc(arena, t.num_ptrs*sizeof(fstr));
-    out.alloc_len = t.num_ptrs;
-    out.len = 0;
-    for(int i = 0; i<t.num_ptrs; i++){
-        fstr n = fstr_fromStr(arena,t.ptrs[i]);
-        if(strlen(n.data)){
-            //printf("%s,", n.data);
-            fstrArray_Push(&out, n);
-        }
-    }
-    return out;
-}
+
+
 void fstr_cat(fstr * a, char * b){
     int l = strlen(b);
-    for(int i =0 ; i<l-1; i++){
+    for(int i =0 ; i<l; i++){
         fstr_push(a, b[i]);
     }
 }
