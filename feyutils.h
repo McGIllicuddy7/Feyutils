@@ -1,10 +1,10 @@
 #ifndef FEY_UTILS_H
 #define FEY_UTILS_H
 #include <stdlib.h>
+#include <assert.h>
 #include <string.h>
 #include <math.h>
 #include <stdbool.h>
-#define FEY_ARENA_SIZE 1280
 #define GLOBAL_ARENA 0
 typedef unsigned char byte;
 //the struct for handling memory allocation in arenas, you do not have to worry about this just please don't mess with it.
@@ -23,7 +23,7 @@ typedef struct{
     size_t num_allocated;
     size_t list_size;
 } fey_arena_t;
-#define SMALL_ARENA_SIZE 8192
+#define SMALL_ARENA_SIZE 4096
 #define SMALL_ARENA_LIST_SIZE 64
 #define MEDIUM_ARENA_SIZE 65536
 #define MEDIUM_ARENA_LIST_SIZE 2048
@@ -78,6 +78,7 @@ void fey_arena_free(fey_arena_t *arena, void * ptr);
 void * fey_arena_realloc(fey_arena_t * arena, void * ptr, size_t requested_size);
 //prints the memory address pointed to by every chunk of memory in an arena alloactor, whether or not it is free, and the size of it,
 void fey_arena_debug(fey_arena_t * arena);
+
 /*creates a dynamic array type for whatever parameter is passed to the macro which uses an arena allocator for its memory operations. The name of the type is TArray_t where T is the name of the type, TArray_New() returns 
 a fully set up array, TArray_Push() adds an element of type T to the highest index of the array, TArray_Pop removes the element with the highest index from the array, TArray_Insert() adds an element at a given position and moves the element currently 
 occupting the position and every element above it up one position, TArray_Remove() removes an element at the given index by moving element above that index down one,TArray_Iterate() calls the inputed function on each element of the array. TArray_Free 
@@ -91,18 +92,20 @@ typedef struct{\
 \
 }T##Array_t;\
 static T##Array_t T##Array_New(fey_arena_t *arena){\
-    T* arr = fey_arena_alloc(arena,4*sizeof(T)); \
-    return (T##Array_t){.arena = arena,.arr = arr, .len = 0, .alloc_len = 4};\
+    T* arr = fey_arena_alloc(arena,8*sizeof(T)); \
+    return (T##Array_t){.arena = arena,.arr = arr, .len = 0, .alloc_len = 8};\
 }\
 static void T##Array_Push(T##Array_t*arr, T val){\
     fey_arena_t* arena = arr->arena;\
-    if(arr->len+1>arr->alloc_len){\
+    if((arr->len+1)>(arr->alloc_len)){\
         arr->alloc_len *=2;\
         T * arr_new = fey_arena_alloc(arena,arr->alloc_len*sizeof(T));\
         for(int i = 0; i<arr->len; i++){\
             arr_new[i] = arr->arr[i];\
         }\
+        T * old = arr->arr;\
         arr->arr = arr_new;\
+        fey_arena_free(arena,old);\
     }\
         arr->arr[arr->len] = val;\
         arr->len++;\
@@ -130,7 +133,6 @@ static void T##Array_Insert(T##Array_t *arr, long index, T val){\
     arr->len++;\
 }\
 static void T##Array_Remove(T##Array_t *arr, long index){\
-    fey_arena_t * arena = arr->arena;\
     if(index<0 || index>=arr->len){\
         return;\
     }\
@@ -138,6 +140,17 @@ static void T##Array_Remove(T##Array_t *arr, long index){\
          arr->arr[i-1] = arr->arr[i];\
     }\
     arr->len--;\
+}\
+static void T##Array_Reserve(T##Array_t * arr, size_t new_size){\
+    size_t old_len = arr->alloc_len;\
+    while(arr->alloc_len<new_size){\
+        arr->alloc_len *= 2;\
+    }\
+    if(arr->alloc_len == old_len){\
+        return;\
+    }\
+    T * arena_new = fey_arena_alloc(arr->arena, arr->alloc_len*sizeof(T));\
+    memcpy(arena_new, arr->arena, arr->len*sizeof(T));\
 }\
 static void T##Array_Free(T##Array_t * arr){\
     fey_arena_free(arr->arena,arr->arr);\
@@ -147,6 +160,7 @@ static void T##Array_Iterate(T##Array_t * arr, void (*func)(T*)){\
         func(&arr->arr[i]);\
     }\
 }
+
 typedef struct{
     fey_arena_t * arena;
     size_t len;
@@ -161,8 +175,6 @@ void fstr_push(fstr * str, char c);
 fstr fstr_add(fey_arena_t * arena, fstr a, fstr b);
 void fstr_cat(fstr * a, char * b);
 bool fstr_eq(fstr a, fstr b);
-EnableArrayType(fstr)
-fstrArray_t parse_fstr(fey_arena_t * arena, char * string, char * token_seperators);
 void fstr_print(fstr str);
 void fstr_println(fstr str);
 #define fstr_create(name, fmt, ...) fstr name  = fstr_new(local);\
