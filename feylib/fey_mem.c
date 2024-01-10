@@ -1,4 +1,4 @@
-#include "feyutils.h"
+#include "feylibcore.h"
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>

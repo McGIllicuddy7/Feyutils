@@ -1,4 +1,5 @@
 #pragma once
+#include "feylibcore.h"
 /*creates a dynamic array type for whatever parameter is passed to the macro which uses an arena allocator for its memory operations. The name of the type is TArray_t where T is the name of the type, TArray_New() returns 
 a fully set up array, TArray_Push() adds an element of type T to the highest index of the array, TArray_Pop removes the element with the highest index from the array, TArray_Insert() adds an element at a given position and moves the element currently 
 occupting the position and every element above it up one position, TArray_Remove() removes an element at the given index by moving element above that index down one,TArray_Iterate() calls the inputed function on each element of the array. TArray_Free 
