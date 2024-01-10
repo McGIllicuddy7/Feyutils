@@ -100,7 +100,7 @@ void * fey_arena_alloc(fey_arena_t * arena, size_t requested_size){
         }
     }
     if(index == -1){
-        printf("error out of memory on arena\n");
+        fprintf(stderr,"error out of memory on arena\n");
         fey_arena_debug(arena);
         exit(1);
     }
@@ -114,8 +114,6 @@ void * fey_arena_alloc(fey_arena_t * arena, size_t requested_size){
     return ptr;
 }
 void fey_arena_free(fey_arena_t *arena, void * ptr){
-    printf("free call: ");
-    fey_arena_debug(arena);
     if(arena == GLOBAL_ARENA){
         arena = &global;
         if(!global_arena_set_up){
@@ -131,24 +129,13 @@ void fey_arena_free(fey_arena_t *arena, void * ptr){
         }
     }
     if(index == -1){
-        printf("\n failed\n");
-        fey_arena_debug(arena);
-        printf("failed to find %p\n",ptr);
+        fprintf(stderr, "failed to find %p\n",ptr);
         return;
     }
-    printf("pre insert: ");
-    fey_arena_debug(arena);
-    printf("\n");
     arena_chunk_t chunk = arena->alloc_list[index];
     list_insert(arena->free_list, chunk, &arena->num_free);
-    printf("pre remove: ");
-    fey_arena_debug(arena);
-    printf("\n");
     list_remove(arena->alloc_list, ptr, &arena->num_allocated);
 merged:
-     printf("pre merge: ");
-    fey_arena_debug(arena);
-    printf("\n");
     for(int i = 0;i<arena->num_free-1; i++){
         if(arena->free_list[i].ptr+arena->free_list[i].size == arena->free_list[i+1].ptr){
             arena->free_list[i].size+= arena->free_list[i+1].size;
@@ -156,9 +143,6 @@ merged:
             goto merged;
         }
     }
-    printf("to: ");
-    fey_arena_debug(arena);
-    printf("\n\n");
 }
 void * fey_arena_realloc(fey_arena_t * arena, void * ptr, size_t requested_size){
     if(arena == GLOBAL_ARENA){
@@ -229,110 +213,5 @@ fey_arena_t * create_mmapped_arena(size_t requested_size){
     arena->free_list = free_list;
     arena->list_size = list_sz;
     fey_arena_hard_reset(arena);
-    printf("allocation size: %zu\n", sz_alloc);
-    printf("buffer size: %zu\n", sz);
     return arena;
-}
-//fstr functions
-fstr subfstr(char * v, int start, int end, fey_arena_t * arena){
-    fey_init_small_arena();
-	char * out = fey_arena_alloc(local, end-start);
-	for(int i = start; i<end; i++){
-		out[i-start] = v[i];
-	}
-	return fstr_fromStr(arena, out);
-}
-fstr fstr_fromStr(fey_arena_t * arena, char * c){
-    fstr out;
-    out.arena = arena;
-    out.len = strlen(c)+1;
-    int actlen = ceil(log2(out.len));
-    out.alloc_len = 1;
-    for(int i =0 ; i<actlen; i++){
-        out.alloc_len *= 2;
-    }
-    out.data = fey_arena_alloc(arena,out.alloc_len);
-    for(int i = 0; i<out.len; i++){
-        out.data[i] = c[i];
-    }
-    return out;
-}
-void fstr_push(fstr * str, char c){
-    fey_arena_t * arena = str->arena;
-    if(str->alloc_len<1){
-        str->data = fey_arena_alloc(arena, 8);
-        str->data[0] = c;
-        str->len = 2;
-        str->alloc_len = 8;
-        return;
-    }
-    if(str->alloc_len>str->len+1){
-        str->data[str->len-1] = c;
-        str->data[str->len] = '\0';
-        str->len++;
-    }
-    else{
-        str->alloc_len *= 2;
-        char * buff = fey_arena_alloc(arena, str->alloc_len);
-        assert(buff != NULL);
-        for(int i = 0; i<str->len-1; i++){
-            buff[i] = str->data[i];
-        }
-        buff[str->len-1] = c;
-        buff[str->len] = '\0';
-        str->len++;
-        //fey_arena_free(arena,str->data);s
-        str->data = buff;
-    }
-}
-fstr fstr_add(fey_arena_t * arena,fstr a, fstr b){
-    fstr out = {arena,0,0,0};
-    for(int i = 0; i<a.len-1; i++){
-        fstr_push(&out, a.data[i]);
-    }
-    for(int i = 0; i<b.len-1; i++){
-        fstr_push(&out, b.data[i]);
-    }
-    return out;
-}
-bool fstr_eq(fstr a, fstr b){
-    if(a.len != b.len){
-        return false;
-    }
-    for(int i =0 ; i<a.len; i++){
-        if(a.data[i] != b.data[i]){
-            return false;
-        }
-    }
-    return true;
-}
-
-
-void fstr_cat(fstr * a, char * b){
-    int l = strlen(b);
-    for(int i =0 ; i<l; i++){
-        fstr_push(a, b[i]);
-    }
-}
-void fstr_print(fstr str){
-    printf("%s", str.data);
-}
-void fstr_println(fstr str){
-    printf("%s\n",str.data);
-}
-fstr fstr_new(fey_arena_t * arena){
-    fstr out;
-    out.arena = arena;
-    out.len = 1;
-    out.data = fey_arena_alloc(arena,8);
-    out.alloc_len = 8;
-    out.data[0] = '\0';
-    return out;
-}
-void fstr_delete(fstr str){
-    fey_arena_t * arena = str.arena;
-    fey_arena_free(arena, str.data);
-    str.data = 0;
-    str.alloc_len = 0;
-    str.len = 0;
 }
