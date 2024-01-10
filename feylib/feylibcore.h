@@ -1,5 +1,6 @@
 #pragma once
 #include <stdlib.h>
+#include <stdatomic.h>
 #include <assert.h>
 #include <string.h>
 #include <math.h>
@@ -20,6 +21,7 @@ typedef struct{
     arena_chunk_t* alloc_list;
     size_t num_allocated;
     size_t list_size;
+    volatile atomic_int access_flag;
 } fey_arena_t;
 #define SMALL_ARENA_SIZE 4096
 #define SMALL_ARENA_LIST_SIZE 64
@@ -41,6 +43,7 @@ void fey_arena_hard_reset(fey_arena_t * arena);
     local_arena.free_list = local_arena_free_list;\
     local_arena.buffer_size = SMALL_ARENA_SIZE;\
     local_arena.list_size = SMALL_ARENA_LIST_SIZE;\
+    local_arena.access_flag = 0;\
     fey_arena_t * local = &local_arena;\
     fey_arena_hard_reset(local);
 #define fey_init_medium_arena()\
@@ -53,6 +56,7 @@ void fey_arena_hard_reset(fey_arena_t * arena);
     local_arena.free_list = local_arena_free_list;\
     local_arena.buffer_size = MEDIUM_ARENA_SIZE;\
     local_arena.list_size = MEDIUM_ARENA_LIST_SIZE;\
+    local_arena.access_flag = 0;\
     fey_arena_t * local = &local_arena;\
     fey_arena_hard_reset(local);
 #define fey_init_large_arena()\
@@ -65,9 +69,11 @@ void fey_arena_hard_reset(fey_arena_t * arena);
     local_arena.free_list = local_arena_free_list;\
     local_arena.buffer_size = LARGE_ARENA_SIZE;\
     local_arena.list_size = LARGE_ARENA_LIST_SIZE;\
+    local_arena.access_flag = 0;\
     fey_arena_t * local = &local_arena;\
     fey_arena_hard_reset(local);
 fey_arena_t * create_mmapped_arena(size_t requested_size);
+void destroy_mmapped_arena(fey_arena_t * arena);
 //Returns a pointer to a block of memory the size of the nearest multiple of eight to requested size(minimum 8 bytes), basically malloc for an arena allocator
 void * fey_arena_alloc(fey_arena_t * arena, size_t requested_size);
 //frees memory allocated an arena allocator, basically free for an arena allocator

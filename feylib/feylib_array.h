@@ -6,10 +6,10 @@ occupting the position and every element above it up one position, TArray_Remove
 frees only the memory that the array owns, e.g if it is an array of pointers it will not free any of the pointers. The convention for arrays of pointers is "typedef T* Tptr" where T is the type you want to have a pointer t*/
 #define EnableArrayType(T)\
 typedef struct{\
-    fey_arena_t * arena;\
     T* arr;\
     size_t len;\
     size_t alloc_len;\
+    fey_arena_t * arena;\
 \
 }T##Array_t;\
 static T##Array_t T##Array_New(fey_arena_t *arena){\

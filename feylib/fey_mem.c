@@ -26,13 +26,25 @@ typedef struct{
     size_t num_allocated;
 } fey_arena_t;
 */
+static void fey_arena_mem_access(fey_arena_t * arena){
+    while(arena->access_flag){
+        asm("nop");
+    }
+    arena->access_flag = 1;
+    return;
+}
+static void fey_arena_mem_finish_access(fey_arena_t * arena){
+    arena->access_flag = 0;
+}
 void fey_arena_hard_reset(fey_arena_t * arena){
+    fey_arena_mem_access(arena);
     memset(arena->buffer, 0, arena->buffer_size);
     memset(arena->alloc_list, 0, arena->list_size*sizeof(arena_chunk_t));
     memset(arena->free_list, 0, arena->list_size*sizeof(arena_chunk_t));
     arena->num_free =1;
     arena->num_allocated = 0;
     arena->free_list[0] = (arena_chunk_t){arena->buffer, arena->buffer_size};
+    fey_arena_mem_finish_access(arena);
 }
 void list_insert(arena_chunk_t * array, arena_chunk_t value, size_t * array_sz){
     if(value.ptr == 0 || value.size == 0){
@@ -72,6 +84,7 @@ void list_remove(arena_chunk_t * array, void * pointer, size_t * array_sz){
     (*array_sz)--;
 }
 void * fey_arena_alloc(fey_arena_t * arena, size_t requested_size){
+    fey_arena_mem_access(arena);
     if(arena->num_allocated+1>arena->list_size){
         return NULL;
     }
@@ -111,9 +124,11 @@ void * fey_arena_alloc(fey_arena_t * arena, size_t requested_size){
     if(new_sz>0){
          list_insert(arena->free_list, (arena_chunk_t){ptr+size, new_sz},&arena->num_free);
     }
+    fey_arena_mem_finish_access(arena);
     return ptr;
 }
 void fey_arena_free(fey_arena_t *arena, void * ptr){
+    fey_arena_mem_access(arena);
     if(arena == GLOBAL_ARENA){
         arena = &global;
         if(!global_arena_set_up){
@@ -143,8 +158,10 @@ merged:
             goto merged;
         }
     }
+    fey_arena_mem_finish_access(arena);
 }
 void * fey_arena_realloc(fey_arena_t * arena, void * ptr, size_t requested_size){
+    fey_arena_mem_access(arena);
     if(arena == GLOBAL_ARENA){
         arena = &global;
         if(!global_arena_set_up){
@@ -172,6 +189,7 @@ void * fey_arena_realloc(fey_arena_t * arena, void * ptr, size_t requested_size)
         out[i] = optr[i];
     }
     fey_arena_free(arena, ptr);
+    fey_arena_mem_finish_access(arena);
     return out;
 }
 void fey_arena_debug(fey_arena_t * arena){
@@ -198,10 +216,12 @@ fey_arena_t * create_mmapped_arena(size_t requested_size){
     }
     sz *= getpagesize();
     size_t list_sz = sz/64;
-    size_t sz_alloc = sz+sizeof(fey_arena_t)+sizeof(arena_chunk_t)*list_sz*2;
+    size_t sz_alloc = sz+sizeof(fey_arena_t)+sizeof(arena_chunk_t)*list_sz*2+sizeof(uint64_t);
     void * addr = mmap(NULL,sz_alloc,PROT_READ | PROT_WRITE, MAP_ANONYMOUS |  MAP_SHARED  ,0,0);
     fey_arena_t * arena  = addr;
-    void * current= addr+sizeof(fey_arena_t);
+    arena->access_flag = 0;
+    *(uint64_t *)(addr+sizeof(fey_arena_t)) = sz_alloc;
+    void * current= addr+sizeof(fey_arena_t)+sizeof(uint64_t);
     arena_chunk_t * alloc_list = current;
     current += sizeof(arena_chunk_t) * list_sz;
     arena_chunk_t * free_list = current;
@@ -214,4 +234,9 @@ fey_arena_t * create_mmapped_arena(size_t requested_size){
     arena->list_size = list_sz;
     fey_arena_hard_reset(arena);
     return arena;
+}
+void destroy_mmapped_arena(fey_arena_t *arena){
+    uint64_t sz = *(uint64_t *)(arena+sizeof(fey_arena_t));
+    int q =  munmap(arena, sz);
+    assert(q != 0);
 }

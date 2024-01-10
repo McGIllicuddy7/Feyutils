@@ -1,10 +1,10 @@
 #pragma once
 #include "feylibcore.h"
 typedef struct{
-    fey_arena_t * arena;
-    size_t len;
     char * data;
+    size_t len;
     size_t alloc_len;
+    fey_arena_t * arena;
 }fstr;
 fstr fstr_new(fey_arena_t * arena);
 void fstr_delete(fstr str);

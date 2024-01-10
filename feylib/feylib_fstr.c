@@ -53,7 +53,7 @@ void fstr_push(fstr * str, char c){
     }
 }
 fstr fstr_add(fey_arena_t * arena,fstr a, fstr b){
-    fstr out = {arena,0,0,0};
+    fstr out = {0,0,0,arena};
     for(int i = 0; i<a.len-1; i++){
         fstr_push(&out, a.data[i]);
     }
