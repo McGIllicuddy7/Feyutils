@@ -1,4 +1,6 @@
 #include "feylibcore.h"
+#include <errno.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
@@ -86,6 +88,7 @@ void list_remove(arena_chunk_t * array, void * pointer, size_t * array_sz){
 void * fey_arena_alloc(fey_arena_t * arena, size_t requested_size){
     fey_arena_mem_access(arena);
     if(arena->num_allocated+1>arena->list_size){
+        fey_arena_mem_finish_access(arena);
         return NULL;
     }
     if(arena == GLOBAL_ARENA){
@@ -97,6 +100,7 @@ void * fey_arena_alloc(fey_arena_t * arena, size_t requested_size){
     }
     size_t size = requested_size;
     if(size<1){
+        fey_arena_mem_finish_access(arena);
         return NULL;
     }
     size += size%8;
@@ -113,9 +117,10 @@ void * fey_arena_alloc(fey_arena_t * arena, size_t requested_size){
         }
     }
     if(index == -1){
+        fey_arena_mem_finish_access(arena);
         fprintf(stderr,"error out of memory on arena\n");
         fey_arena_debug(arena);
-        exit(1);
+        //(*(volatile char *)NULL) = 0;
     }
     void * ptr = arena->free_list[index].ptr;
     size_t new_sz = arena->free_list[index].size-size;
@@ -144,7 +149,9 @@ void fey_arena_free(fey_arena_t *arena, void * ptr){
         }
     }
     if(index == -1){
+        fey_arena_mem_finish_access(arena);
         fprintf(stderr, "failed to find %p\n",ptr);
+        *(volatile int *)0 = 0;
         return;
     }
     arena_chunk_t chunk = arena->alloc_list[index];
@@ -177,6 +184,7 @@ void * fey_arena_realloc(fey_arena_t * arena, void * ptr, size_t requested_size)
         }
     }
     if(index == -1){
+        fey_arena_mem_finish_access(arena);
         return NULL;
     }
     char * out = fey_arena_alloc(arena, requested_size);
@@ -216,12 +224,12 @@ fey_arena_t * create_mmapped_arena(size_t requested_size){
     }
     sz *= getpagesize();
     size_t list_sz = sz/64;
-    size_t sz_alloc = sz+sizeof(fey_arena_t)+sizeof(arena_chunk_t)*list_sz*2+sizeof(uint64_t);
+    size_t sz_alloc = sz+sizeof(fey_arena_t)+sizeof(arena_chunk_t)*list_sz*2;
     void * addr = mmap(NULL,sz_alloc,PROT_READ | PROT_WRITE, MAP_ANONYMOUS |  MAP_SHARED  ,0,0);
     fey_arena_t * arena  = addr;
     arena->access_flag = 0;
-    *(uint64_t *)(addr+sizeof(fey_arena_t)) = sz_alloc;
-    void * current= addr+sizeof(fey_arena_t)+sizeof(uint64_t);
+    printf("alloc size: %lu\n", sz_alloc);
+    void * current= addr+sizeof(fey_arena_t);
     arena_chunk_t * alloc_list = current;
     current += sizeof(arena_chunk_t) * list_sz;
     arena_chunk_t * free_list = current;
@@ -232,11 +240,13 @@ fey_arena_t * create_mmapped_arena(size_t requested_size){
     arena->alloc_list = alloc_list;
     arena->free_list = free_list;
     arena->list_size = list_sz;
+    arena->access_flag = 0;
     fey_arena_hard_reset(arena);
     return arena;
 }
 void destroy_mmapped_arena(fey_arena_t *arena){
-    uint64_t sz = *(uint64_t *)(arena+sizeof(fey_arena_t));
+    size_t sz = sizeof(fey_arena_t)+arena->buffer_size+arena->list_size*2*sizeof(arena_chunk_t);
+    printf("free size: %lu\n",sz);
     int q =  munmap(arena, sz);
-    assert(q != 0);
+    assert(q == 0);
 }

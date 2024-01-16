@@ -1,4 +1,4 @@
-make: fey_mem.c feylib_fstr.c
-	gcc -c fey_mem.c feylib_fstr.c
-	ar -rcs feyutils.a fey_mem.o feylib_fstr.o 
-	rm -rf fey_mem.o feylib_fstr.o
+make: fey_mem.c feylib_fstr.c fey_hash_table.c fey_hashing.c fey_linked_list.c
+	gcc -c fey_mem.c feylib_fstr.c fey_hash_table.c fey_hashing.c fey_linked_list.c
+	ar -rcs feyutils.a fey_mem.o feylib_fstr.o fey_hash_table.o fey_hashing.o fey_linked_list.o
+	rm -rf fey_mem.o feylib_fstr.o fey_hash_table.o fey_hashing.o fey_linked_list.o

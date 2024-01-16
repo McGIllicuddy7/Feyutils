@@ -1,5 +1,8 @@
+#include "feylib_array.h"
+#include "feylibcore.h"
 #include "feyutils.h"
 #include <stdio.h>
+#include <string.h>
 //fstr functions
 fstr subfstr(char * v, int start, int end, fey_arena_t * arena){
     fey_init_small_arena();
@@ -25,6 +28,7 @@ fstr fstr_fromStr(fey_arena_t * arena, char * c){
     return out;
 }
 void fstr_push(fstr * str, char c){
+    feylib_wait_arena_exclusion(&str->exclusion);
     fey_arena_t * arena = str->arena;
     if(str->alloc_len<1){
         str->data = fey_arena_alloc(arena, 8);
@@ -51,6 +55,7 @@ void fstr_push(fstr * str, char c){
         fey_arena_free(arena,str->data);
         str->data = buff;
     }
+    feylib_release_arena_exclusion(&str->exclusion);
 }
 fstr fstr_add(fey_arena_t * arena,fstr a, fstr b){
     fstr out = {0,0,0,arena};
@@ -94,6 +99,7 @@ fstr fstr_new(fey_arena_t * arena){
     out.data = fey_arena_alloc(arena,8);
     out.alloc_len = 8;
     out.data[0] = '\0';
+    out.exclusion = 0;
     return out;
 }
 void fstr_delete(fstr str){
@@ -102,4 +108,15 @@ void fstr_delete(fstr str){
     str.data = 0;
     str.alloc_len = 0;
     str.len = 0;
+}
+fstr fstr_clone(fstr a){
+    fstr out;
+    fey_arena_t * arena = a.arena;
+    out.data = fey_arena_alloc(arena, a.alloc_len);
+    out.arena = arena;
+    memcpy(out.data, a.data, a.alloc_len);
+    out.alloc_len = a.alloc_len;
+    out.len = a.len;
+    out.exclusion = 0;
+    return out;
 }
