@@ -1,6 +1,8 @@
 #pragma once
 #include "feylibcore.h"
 #include <stdatomic.h>
+#include <stdlib.h>
+#include <stdio.h>
 /*creates a dynamic array type for whatever parameter is passed to the macro which uses an arena allocator for its memory operations. The name of the type is TArray_t where T is the name of the type, TArray_New() returns 
 a fully set up array, TArray_Push() adds an element of type T to the highest index of the array, TArray_Pop removes the element with the highest index from the array, TArray_Insert() adds an element at a given position and moves the element currently 
 occupting the position and every element above it up one position, TArray_Remove() removes an element at the given index by moving element above that index down one,TArray_Iterate() calls the inputed function on each element of the array. TArray_Free 
@@ -31,7 +33,7 @@ static void T##Array_Push(T##Array_t*arr, T val){\
     fey_arena_t* arena = arr->arena;\
     if((arr->len+1)>(arr->alloc_len)){\
         arr->alloc_len *=2;\
-        T * arr_new = fey_arena_alloc(arena,arr->alloc_len*sizeof(T));\
+        T * arr_new = (T*)fey_arena_alloc(arena,arr->alloc_len*sizeof(T));\
         for(int i = 0; i<arr->len; i++){\
             arr_new[i] = arr->arr[i];\
         }\
@@ -57,7 +59,7 @@ static void T##Array_Insert(T##Array_t *arr, long index, T val){\
     feylib_wait_arena_exclusion(&arr->exclusion);\
     if(arr->len+1>=arr->alloc_len){\
         arr->alloc_len *=2;\
-        T * arr_new = fey_arena_alloc(arena, arr->alloc_len*sizeof(T));\
+        T * arr_new = (T*)fey_arena_alloc(arena, arr->alloc_len*sizeof(T));\
         for(int i = 0; i<arr->len; i++){\
             arr_new[i] = arr->arr[i];\
         }\
@@ -102,4 +104,83 @@ static void T##Array_Iterate(T##Array_t * arr, void (*func)(T*)){\
     for(int i= 0; i<arr->len; i++){\
         func(&arr->arr[i]);\
     }\
+}
+
+static int int_cmp(const void* a, const void *b){
+    return ( *(int*)a - *(int*)b );
+}
+static int long_cmp(const void* a, const void *b){
+    return ( *(long*)a - *(long*)b );
+}
+static int double_cmp(const void* a, const void *b){
+   return ( *(double*)a - *(double*)b );
+}
+static int float_cmp(const void* a, const void *b){
+    return ( *(float*)a - *(float*)b );
+}
+
+EnableArrayType(float);
+EnableArrayType(int);
+EnableArrayType(double);
+EnableArrayType(long);
+
+static void floatArray_Sort(floatArray_t * array){
+    qsort(array->arr, array->len, sizeof(float),float_cmp);
+}
+static void intArray_Sort(intArray_t * array){
+    qsort(array->arr, array->len, sizeof(int),int_cmp);
+}
+static void doubleArray_Sort(doubleArray_t * array){
+    qsort(array->arr, array->len, sizeof(double),double_cmp);
+}
+static void longArray_Sort(longArray_t * array){
+    qsort(array->arr, array->len, sizeof(long),long_cmp);
+}
+static void floatArray_Print(floatArray_t * array){
+    printf("{ ");
+    for(int i =0; i<array->len; i++){
+        if(i<array->len-1){
+            printf("%f, ",array->arr[i]);
+        }
+        else{
+            printf("%f",array->arr[i]);
+        }
+    }
+    printf("}\n");
+}
+static void doubleArray_Print(doubleArray_t * array){
+    printf("{ ");
+    for(int i =0; i<array->len; i++){
+        if(i<array->len-1){
+            printf("%lf, ",array->arr[i]);
+        }
+        else{
+            printf("%lf",array->arr[i]);
+        }
+    }
+    printf("}\n");
+}
+static void intArray_Print(intArray_t * array){
+    printf("{ ");
+    for(int i =0; i<array->len; i++){
+        if(i<array->len-1){
+            printf("%d, ",array->arr[i]);
+        }
+        else{
+            printf("%d",array->arr[i]);
+        }
+    }
+    printf("}\n");
+}
+static void longArray_Print(longArray_t * array){
+    printf("{ ");
+    for(int i =0; i<array->len; i++){
+        if(i<array->len-1){
+            printf("%ld, ",array->arr[i]);
+        }
+        else{
+            printf("%ld",array->arr[i]);
+        }
+    }
+    printf("}\n");
 }

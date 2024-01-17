@@ -1,9 +1,16 @@
-#include "feylib_array.h"
 #include "feylibcore.h"
-#include "feyutils.h"
+#include "feylib_fstr.h"
 #include <stdio.h>
 #include <string.h>
 //fstr functions
+static inline void feylib_wait_arena_exclusion(atomic_int * exclusion){
+    while(*exclusion){
+    }
+    *exclusion = 1;
+}
+static inline void feylib_release_arena_exclusion(atomic_int * exclusion){
+    *exclusion = 0;
+}
 fstr subfstr(char * v, int start, int end, fey_arena_t * arena){
     fey_init_small_arena();
 	char * out = fey_arena_alloc(local, end-start);
