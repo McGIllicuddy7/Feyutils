@@ -1,2 +1,2 @@
 # Feyutils
-utilities, a region memory allocator with freeable memory and array macros mostly as well as a struct called fstr for string manipulation stuff
+feyutils is a utilities library that is based around an arena allocator system. It has linked list, hash table and arraylist implementations. 
