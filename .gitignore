@@ -1,4 +1,4 @@
 a.out
-feylib/feyutils.a
+feyutils/feyutils.a
 makefile
 test.c
