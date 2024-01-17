@@ -1,5 +1,10 @@
-#include "fey_hash.h"
-uint64_t hash_charptr(const char * value){
+#pragma once
+#include "feyutils.h"
+uint64_t hash_charptr(const char * value);
+uint64_t hash_fstr(const fstr value);
+uint64_t hash_double(double value);
+uint64_t hash_long(long value);
+inline uint64_t hash_charptr(const char * value){
     uint64_t total = 0;
     uint64_t mlt = 1;
     int l = strlen(value);
@@ -9,7 +14,7 @@ uint64_t hash_charptr(const char * value){
     }
     return total;
 }
-uint64_t hash_fstr(const fstr value){
+inline uint64_t hash_fstr(const fstr value){
     uint64_t total = 0;
     uint64_t mlt = 1;
     int l = value.len;
@@ -20,7 +25,7 @@ uint64_t hash_fstr(const fstr value){
     }
     return total;
 }
-uint64_t hash_double(double value){
+inline uint64_t hash_double(double value){
     unsigned long total = *(unsigned long *)&value;
     total ^= total>> 7;
     total ^= total<< 9;
@@ -30,7 +35,7 @@ uint64_t hash_double(double value){
     total ^= total >> 7;
     return total;
 }
-uint64_t hash_long(long value){
+inline uint64_t hash_long(long value){
     unsigned long total = value;
     total ^= total>> 7;
     total ^= total<< 9;

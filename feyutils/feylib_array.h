@@ -7,7 +7,6 @@ occupting the position and every element above it up one position, TArray_Remove
 frees only the memory that the array owns, e.g if it is an array of pointers it will not free any of the pointers. The convention for arrays of pointers is "typedef T* Tptr" where T is the type you want to have a pointer t*/
 static inline void feylib_wait_arena_exclusion(atomic_int * exclusion){
     while(*exclusion){
-        asm("nop");
     }
     *exclusion = 1;
 }
