@@ -72,6 +72,19 @@ void fey_arena_hard_reset(fey_arena_t * arena);
     local_arena.access_flag = 0;\
     fey_arena_t * local = &local_arena;\
     fey_arena_hard_reset(local);
+#define create_named_arena(name)\
+    byte name##_arena_buffer[LARGE_ARENA_SIZE];\
+    arena_chunk_t local_arena_free_list[LARGE_ARENA_LIST_SIZE];\
+    arena_chunk_t local_arena_alloc_list[LARGE_ARENA_LIST_SIZE];\
+    fey_arena_t name##_arena;\
+    name##_arena.buffer = name##_arena_buffer;\
+    name##_arena.alloc_list = name##_arena_alloc_list;\
+    name##_arena.free_list = name##_arena_free_list;\
+    name##_arena.buffer_size = LARGE_ARENA_SIZE;\
+    name##_arena.list_size = LARGE_ARENA_LIST_SIZE;\
+    name##_arena.access_flag = 0;\
+    fey_arena_t * name = &name##_arena;\
+    fey_arena_hard_reset(name);
 fey_arena_t * create_mmapped_arena(size_t requested_size);
 void destroy_mmapped_arena(fey_arena_t * arena);
 //Returns a pointer to a block of memory the size of the nearest multiple of eight to requested size(minimum 8 bytes), basically malloc for an arena allocator
