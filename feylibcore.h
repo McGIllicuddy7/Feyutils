@@ -74,8 +74,8 @@ void fey_arena_hard_reset(fey_arena_t * arena);
     fey_arena_hard_reset(local);
 #define create_named_arena(name)\
     byte name##_arena_buffer[LARGE_ARENA_SIZE];\
-    arena_chunk_t local_arena_free_list[LARGE_ARENA_LIST_SIZE];\
-    arena_chunk_t local_arena_alloc_list[LARGE_ARENA_LIST_SIZE];\
+    arena_chunk_t name##_arena_free_list[LARGE_ARENA_LIST_SIZE];\
+    arena_chunk_t name##_arena_alloc_list[LARGE_ARENA_LIST_SIZE];\
     fey_arena_t name##_arena;\
     name##_arena.buffer = name##_arena_buffer;\
     name##_arena.alloc_list = name##_arena_alloc_list;\
